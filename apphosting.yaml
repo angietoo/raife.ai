@@ -1,0 +1,11 @@
+# Keep the public prototype inexpensive and bounded while traffic is unknown.
+runConfig:
+  minInstances: 0
+  maxInstances: 2
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+
+env:
+  - variable: FIREBASE_PROJECT_ID
+    value: raife-27d9a

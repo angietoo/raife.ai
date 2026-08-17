@@ -1,47 +1,50 @@
-import { eq } from "drizzle-orm";
-import { getDb } from "../../../db";
-import { ensureRoutingSchema } from "../../../db/runtime";
-import { policyVersions, routingDecisions } from "../../../db/schema";
-import { routeLeads, type Lead, type RoutingPolicy } from "../../../lib/router";
+import { getPolicy, recordDecisions } from "../../../db/vault";
+import { routeLeads } from "../../../lib/router";
+import { isValidLeads } from "../../../lib/validation";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
-    const payload = (await request.json()) as { version?: number; leads?: Lead[] };
-    if (!payload.version || !Array.isArray(payload.leads) || payload.leads.length === 0) {
-      return Response.json({ error: "A policy version and at least one lead are required." }, { status: 400 });
+    const payload = (await request.json()) as {
+      version?: unknown;
+      leads?: unknown;
+    };
+    if (
+      !Number.isInteger(payload.version) ||
+      Number(payload.version) < 1 ||
+      !isValidLeads(payload.leads)
+    ) {
+      return Response.json(
+        { error: "A policy version and 1–25 valid leads are required." },
+        { status: 400 },
+      );
     }
 
-    await ensureRoutingSchema();
-    const db = getDb();
-    const [stored] = await db
-      .select()
-      .from(policyVersions)
-      .where(eq(policyVersions.version, payload.version))
-      .limit(1);
-
+    const version = Number(payload.version);
+    const stored = await getPolicy(version);
     if (!stored) {
-      return Response.json({ error: "That policy version does not exist." }, { status: 404 });
+      return Response.json(
+        { error: "That policy version does not exist." },
+        { status: 404 },
+      );
     }
 
-    const policy = JSON.parse(stored.policyJson) as RoutingPolicy;
-    const decisions = routeLeads(payload.leads, policy, payload.version);
-    await db.insert(routingDecisions).values(
-      decisions.map((decision) => ({
-        id: crypto.randomUUID(),
-        leadId: decision.leadId,
-        policyVersion: payload.version as number,
-        agentId: decision.selectedAgentId,
-        decisionJson: JSON.stringify(decision),
-      })),
-    );
+    const decisions = routeLeads(payload.leads, stored.policy, version);
+    await recordDecisions(payload.leads, decisions, version);
 
     return Response.json({
-      version: payload.version,
+      version,
       hash: stored.snapshotHash,
-      agentSnapshotCount: policy.agents.length,
+      agentSnapshotCount: stored.policy.agents.length,
       decisions,
     });
-  } catch {
-    return Response.json({ error: "The routing simulation could not be completed." }, { status: 500 });
+  } catch (error) {
+    console.error("Unable to complete the routing simulation", error);
+    return Response.json(
+      { error: "The routing simulation could not be completed." },
+      { status: 500 },
+    );
   }
 }
