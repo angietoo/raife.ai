@@ -1,0 +1,11 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // The prototype only accesses Firestore through its server-side API routes.
+    // The Firestore server library uses IAM and bypasses these client rules.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
