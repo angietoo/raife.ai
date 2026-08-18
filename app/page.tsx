@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   defaultLeads,
   defaultPolicy,
@@ -86,6 +86,7 @@ function Toggle({
 }
 
 export default function Home() {
+  const howItWorksDialog = useRef<HTMLDialogElement>(null);
   const [stage, setStage] = useState<Stage>("agents");
   const [policy, setPolicy] = useState<RoutingPolicy>(() => copyPolicy(defaultPolicy));
   const [leads, setLeads] = useState<Lead[]>(() => JSON.parse(JSON.stringify(defaultLeads)) as Lead[]);
@@ -270,13 +271,18 @@ export default function Home() {
   return (
     <main>
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="RAIFE routing vault home">
-          <span className="brand-mark">R</span>
-          <span>RAIFE</span>
-        </a>
+        <div className="brand-stack">
+          <a className="brand" href="#top" aria-label="RAIFE routing vault home">
+            <span className="brand-mark">R</span>
+            <span>RAIFE</span>
+          </a>
+          <a className="back-link" href="https://angelicareams.com">
+            <span aria-hidden="true">←</span> Back to angelicareams.com
+          </a>
+        </div>
         <div className="header-center">
           <span className="status-dot" />
-          Deterministic router
+          Proof of concept
         </div>
         <div className="header-actions">
           <span className="version-chip">Policy v{String(version).padStart(2, "0")}</span>
@@ -305,9 +311,96 @@ export default function Home() {
                 <span>Same lead + policy + agent snapshot = same decision</span>
               </div>
             </div>
+            <button
+              className="how-it-works-button"
+              type="button"
+              onClick={() => howItWorksDialog.current?.showModal()}
+            >
+              <span>How it works</span>
+              <span aria-hidden="true">↗</span>
+            </button>
           </div>
         </div>
       </section>
+
+      <dialog
+        ref={howItWorksDialog}
+        className="how-it-works-dialog"
+        aria-labelledby="how-it-works-title"
+      >
+        <div className="dialog-card">
+          <div className="dialog-topline">
+            <span className="section-kicker">About this demo</span>
+            <button
+              className="dialog-close"
+              type="button"
+              aria-label="Close How it works"
+              onClick={() => howItWorksDialog.current?.close()}
+            >
+              ×
+            </button>
+          </div>
+          <h2 id="how-it-works-title">How the routing proof of concept works.</h2>
+          <p className="dialog-intro">
+            RAIFE turns a defined set of agent availability and routing rules into a versioned,
+            reproducible decision—so every simulated lead assignment has a visible reason.
+          </p>
+
+          <ol className="how-steps">
+            <li>
+              <span>01</span>
+              <div>
+                <strong>Configure the agent snapshot</strong>
+                <p>Set availability, capacity, territories, capabilities, and languages.</p>
+              </div>
+            </li>
+            <li>
+              <span>02</span>
+              <div>
+                <strong>Publish an explicit policy</strong>
+                <p>Active requirements and preferences are saved together as a new policy version.</p>
+              </div>
+            </li>
+            <li>
+              <span>03</span>
+              <div>
+                <strong>Resolve fictional test leads</strong>
+                <p>The engine filters, scores, and selects an agent, then records the explanation trace.</p>
+              </div>
+            </li>
+          </ol>
+
+          <section className="dialog-data-note" aria-labelledby="data-use-title">
+            <span className="dialog-icon" aria-hidden="true">i</span>
+            <div>
+              <h3 id="data-use-title">How information is used</h3>
+              <p>
+                Information entered here is sent to this demo&apos;s Firebase backend when you select
+                Save &amp; route. Policy versions and routing decision records may persist across sessions.
+              </p>
+            </div>
+          </section>
+
+          <section className="dialog-warning" aria-labelledby="demo-warning-title">
+            <span className="dialog-icon" aria-hidden="true">!</span>
+            <div>
+              <h3 id="demo-warning-title">Use fictional information only</h3>
+              <p>
+                This is a proof of concept, not a live production service. Do not upload real leads or
+                personal, confidential, customer, health, financial, or other sensitive information.
+              </p>
+            </div>
+          </section>
+
+          <button
+            className="primary-button dialog-done"
+            type="button"
+            onClick={() => howItWorksDialog.current?.close()}
+          >
+            I understand—continue to the demo
+          </button>
+        </div>
+      </dialog>
 
       <nav className="stage-nav" aria-label="Routing workflow">
         {stages.map((item) => (
